@@ -1,0 +1,24 @@
+#!/bin/bash
+sep="--------------------------------------";
+#sep1="*************************************";
+echo "Finding username which have been suspennded for more than <=180 days";
+sleep 5s;
+clear;
+find ! -name '*.lock' -ctime +180 -exec ls  {} \; |sed 's/.\///g' | while read user;
+do
+echo $sep; echo $sep;
+#echo "Finding username which have been suspennded for more than <=180 days";
+#echo "User :" $user;
+mount_point=$(dirname $(cat /etc/passwd | grep ^$user | awk -F: "/$user/"'{print $6}'));
+#echo "home: $a";
+size_of_the_account=$(repquota -s  / | grep ^$user | awk '{print $3}');
+#echo $sep1;
+echo "Calculating number of days:";
+sleep 2s;
+current_date=$(date  | awk '{print $2" "$3" "$4" "$NF}');
+date_of_suspension=$(cat /var/cpanel/users/$user| grep  -oP "(?<=SUSPENDTIME=).*(?=)");
+days_since_the_suspension=$(( ($(date --date="$current_date" +%s) - $date_of_suspension )/(86400) ));
+echo "User:$user :: Size:$size_of_the_account ::  Days since suspension:$days_since_the_suspension";
+#echo "If the number of days is greater than 180, let Casey know abou it";
+done;
+echo "If the number of days is greater than 180, let Casey know abou it";
