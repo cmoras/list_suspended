@@ -1,14 +1,23 @@
 #!/bin/bash
-sep="--------------------------------------";
-echo "Finding username which have been suspennded for more than <=180 days";
-echo $sep;
+
+#user=muffin;
+#user=rehablib;
 cd /var/cpanel/suspended; find ! -name '*.lock' -ctime +180 -exec ls  {} \; |sed 's/.\///g' | while read user;
 do
-mount_point=$(dirname $(cat /etc/passwd | grep ^$user | awk -F: "/$user/"'{print $6}'));
-size_of_the_account=$(repquota -s  / | grep ^$user | awk '{print $3}');
-current_date=$(date  | awk '{print $2" "$3" "$4" "$NF}');
-date_of_suspension=$(cat /var/cpanel/users/$user| grep  -oP "(?<=SUSPENDTIME=).*(?=)");
-days_since_the_suspension=$(( ($(date --date="$current_date" +%s) - $date_of_suspension )/(86400) ));
-echo "$user occupies $size_of_the_account,  days since suspension  :  $days_since_the_suspension";
-done;
-echo "If the number of days is greater than 180, let Casey know abou it";
+size_inMG=$(repquota -as | grep ^$user | awk '{print $3}' | egrep  "M|G");
+if [[ $size_inMG != ""  ]]; then
+        size_num=$( echo $size_inMG | grep -oP "(?<=).*(?=M)");
+        if [[ $size_num -gt "1000" ]]; then
+                size_of_the_account=$(echo $(( $size_num / 1024 ))G);
+        else
+            	size_of_the_account=$(echo "$size_num"M);
+        fi
+	current_date=$(date  | awk '{print $2" "$3" "$4" "$NF}');
+        date_of_suspension=$(cat /var/cpanel/users/$user| grep  -oP "(?<=SUSPENDTIME=).*(?=)");
+        days_since_the_suspension=$(( ($(date --date="$current_date" +%s) - $date_of_suspension )/(86400) ));
+        echo "$user $size_of_the_account $days_since_the_suspension";
+fi
+done |sed '1i=======\nUsers Size Days_since_suspension' | column -t
+
+echo "Remember to email Casey about this......";
+
